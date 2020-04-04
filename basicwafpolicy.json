@@ -4,7 +4,7 @@
     "id": "5489432",
     "label": "ASM_policy_external_URL",
     "remark": "ASM_policy_external_URL",
-    "awaf_ngfw_demo": {
+    "app_deploy_demo": {
       "class": "Tenant",
       "HTTP_Service": {
         "class": "Application",
@@ -42,7 +42,7 @@
         },
         "Demo_ASM_Policy": {
           "class": "WAF_Policy",
-          "url": "https://raw.githubusercontent.com/therealnoof/terraform-aws-awaf-ngfw-demo/master/waftemplate.xml",
+          "url": "https://raw.githubusercontent.com/dudesweet/simpleAS3Declare/master/waftemplate.xml",
           "ignoreChanges": true
         }
       }
