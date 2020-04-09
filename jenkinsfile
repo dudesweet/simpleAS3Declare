@@ -1,0 +1,65 @@
+pipeline {
+    /* These should really be in a vault/credentials store but for testing
+     * they'll be added as parameters that can be overridden in the job
+     * configuration.
+     */
+    parameters {
+        string(name: 'BIGIP_ADDRESS', 
+               defaultValue: '2.2.2.2',
+               description: 'The IP address for BIG-IP management.')
+        string(name: 'BIGIP_USER',
+               defaultValue: 'notmyuser',
+               description: 'The user account for authentication.')
+        password(name: 'BIGIP_PASSWORD',
+                 defaultValue: 'notmypassword',
+                 description: 'The password for authentication.')
+        booleanParam(name: 'DISABLE_TLS_VERIFICATION',
+                     defaultValue: true,
+                     description: 'Disable TLS and HTTPS certificate checking.')
+    }
+    agent {
+        docker {
+            image 'f5devcentral/f5-cli:latest'
+        }
+    }
+    stages {
+        stage('Prepare F5 CLI configuration') {
+            steps {
+                script {
+                    if(params.DISABLE_TLS_VERIFICATION) {
+                        echo 'Configuring F5 CLI to ignore TLS/HTTPS certificate errors'
+                        sh 'f5 config set-defaults --disable-ssl-warnings true'
+                    }
+                }
+                script {
+                    echo "Authenticating to BIG-IP instance at ${params.BIGIP_ADDRESS}"
+                    sh "f5 login --authentication-provider bigip --host ${params.BIGIP_ADDRESS} --user ${params.BIGIP_USER} --password ${params.BIGIP_PASSWORD}"
+                }
+            }
+        }
+        stage('Verify that AS3 is installed (or not)') {
+            steps {
+                script {
+                    echo 'Running AS3 extension check'
+                    sh 'f5 bigip extension package verify --component as3'
+                }
+            }
+        }
+        stage('Pull declaration from github (or not)') {
+            steps {
+                script {
+                    echo 'Pull Waff Policy from Github'
+                    sh 'wget https://raw.githubusercontent.com/dudesweet/simpleAS3Declare/master/basicwafpolicy.json -O basicwafpolicy.json'
+                }
+            }
+        }
+        stage('Post declaration to BigIP (or not)') {
+            steps {
+                script {
+                    echo 'Post declaration to BigIP (or not)'
+                    sh 'f5 bigip extension service create --component as3 --install-component --declaration basicwafpolicy.json'
+                }
+            }
+        }
+    }
+}
